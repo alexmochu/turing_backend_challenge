@@ -10,6 +10,8 @@
  * NB: Check the BACKEND CHALLENGE TEMPLATE DOCUMENTATION in the readme of this repository to see our recommended
  *  endpoints, request body/param, and response object for each of these method
  */
+
+import { Attribute } from '../database/models';
 class AttributeController {
   /**
    * This method get all attributes
@@ -18,7 +20,47 @@ class AttributeController {
    * @param {*} next
    */
   static async getAllAttributes(req, res, next) {
-    // write code to get all attributes from the database here
+    try {
+      
+
+
+
+      const result = await Attribute.findAndCountAll();
+
+      console.log({ result });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    } catch(e) {
+      console.log('===============================================');
+      console.log('There', e);
+    }
     return res.status(200).json({ message: 'this works' });
   }
 
