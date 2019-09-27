@@ -45,6 +45,7 @@ class ProductController {
    * @memberof ProductController
    */
   static async getAllProducts(req, res, next) {
+
     const { query } = req;
     const { page, limit, offset } = query
     const sqlQueryMap = {
@@ -54,8 +55,8 @@ class ProductController {
     try {
       const products = await Product.findAndCountAll(sqlQueryMap);
       return res.status(200).json({
-        status: true,
-        products,
+        paginationMeta: {},
+        rows: products        
       });
     } catch (error) {
       return next(error);
