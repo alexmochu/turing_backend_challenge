@@ -21,47 +21,12 @@ class AttributeController {
    */
   static async getAllAttributes(req, res, next) {
     try {
-      
-
-
-
       const result = await Attribute.findAndCountAll();
-
-      console.log({ result });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    } catch(e) {
-      console.log('===============================================');
-      console.log('There', e);
+      return res.status(200).json(result);
+      
+    } catch(error) {
+      next(error);
     }
-    return res.status(200).json({ message: 'this works' });
   }
 
   /**
