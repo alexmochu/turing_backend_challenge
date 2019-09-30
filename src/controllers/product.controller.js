@@ -4,6 +4,7 @@
  * The static methods and their function include:
  * 
  * - getAllProducts - Return a paginated list of products
+ * 
  * - searchProducts - Returns a list of product that matches the search query string
  * - getProductsByCategory - Returns all products in a product category
  * - getProductsByDepartment - Returns a list of products in a particular department
@@ -17,6 +18,8 @@
  *  NB: Check the BACKEND CHALLENGE TEMPLATE DOCUMENTATION in the readme of this repository to see our recommended
  *  endpoints, request body/param, and response object for each of these method
  */
+
+import Paginator from '../helpers/paginatorUtil';
 import {
   Product,
   Department,
@@ -45,17 +48,28 @@ class ProductController {
    * @memberof ProductController
    */
   static async getAllProducts(req, res, next) {
-    const { query } = req;
-    const { page, limit, offset } = query
-    const sqlQueryMap = {
-      limit,
-      offset,
-    };
     try {
-      const products = await Product.findAndCountAll(sqlQueryMap);
+      const { query: { page, limit: rawLimit = 2, search } } = req;
+      const limit = parseInt(rawLimit, 10);
+      const db = await Product.findAll();
+      const searched = search ?
+      Object.values(db).filter((product) => product.name.toLowerCase().includes(search.toLowerCase()) || product.description.toLowerCase().includes(search.toLowerCase()))
+      : Object.values(db);
+      const count = searched.length;
+      const pageCount = Math.ceil(count / limit);
+      const currentPage = page < 1 || !page || pageCount === 0 ? 1 : Math.min(page, pageCount);
+      const offset = limit * (currentPage - 1);
+      const paginate = (array, pageSize, pageNumber) => {
+        const number = pageNumber - 1;
+        return array.slice(number * pageSize, (number + 1) * pageSize);
+      }
+      const products = paginate(searched, limit, currentPage);
       return res.status(200).json({
-        status: true,
-        products,
+        paginationMeta: {
+          currentPage, currentPageSize: limit,
+          totalPages: pageCount, totalRecords: Object.values(db).length, totalMatches: searched.length
+        },
+        rows: products        
       });
     } catch (error) {
       return next(error);
