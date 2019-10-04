@@ -19,7 +19,6 @@
  *  endpoints, request body/param, and response object for each of these method
  */
 
-import Paginator from '../helpers/paginatorUtil';
 import {
   Product,
   Department,
@@ -49,31 +48,70 @@ class ProductController {
    */
   static async getAllProducts(req, res, next) {
     try {
-      const { query: { page, limit: rawLimit = 2, search } } = req;
-      const limit = parseInt(rawLimit, 10);
-      const db = await Product.findAll();
-      const searched = search ?
-      Object.values(db).filter((product) => product.name.toLowerCase().includes(search.toLowerCase()) || product.description.toLowerCase().includes(search.toLowerCase()))
-      : Object.values(db);
-      const count = searched.length;
-      const pageCount = Math.ceil(count / limit);
-      const currentPage = page < 1 || !page || pageCount === 0 ? 1 : Math.min(page, pageCount);
-      const offset = limit * (currentPage - 1);
-      const paginate = (array, pageSize, pageNumber) => {
-        const number = pageNumber - 1;
-        return array.slice(number * pageSize, (number + 1) * pageSize);
-      }
-      const products = paginate(searched, limit, currentPage);
-      return res.status(200).json({
-        paginationMeta: {
-          currentPage, currentPageSize: limit,
-          totalPages: pageCount, totalRecords: Object.values(db).length, totalMatches: searched.length
-        },
-        rows: products        
-      });
+      const { query: { page, limit: rawLimit = 10, query_string } } = req;
+
+      if(query_string){ ProductController.searchProduct(req, res, next); }
+
+      
+     
+      // const db = await Product.findAll();
+      // const searched = search ?
+      // Object.values(db).filter((product) => product.name.toLowerCase().includes(search.toLowerCase()) || product.description.toLowerCase().includes(search.toLowerCase()))
+      // : Object.values(db);
+
+      // const count = searched.length;
+
+      // const pageCount = Math.ceil(count / limit);
+      // const currentPage = page < 1 || !page || pageCount === 0 ? 1 : Math.min(page, pageCount);
+      // const offset = limit * (currentPage - 1);
+      // const paginate = (array, pageSize, pageNumber) => {
+      //   const number = pageNumber - 1;
+      //   return array.slice(number * pageSize, (number + 1) * pageSize);
+      // }
+      // const products = paginate(searched, limit, currentPage);
+      // return res.status(200).json({
+      //   paginationMeta: {
+      //     currentPage, 
+      //     currentPageSize: limit,
+      //     totalPages: pageCount, 
+      //     totalRecords: Object.values(db).length, 
+      //     totalMatches: searched.length
+      //   },
+      //   rows: products        
+      // });
     } catch (error) {
       return next(error);
     }
+  }
+
+  static paginateResults(arr, limit, page){
+    const count = arr.length;
+    const pageLimit = parseInt(limit, 10);
+    const pageCount = Math.ceil(count / pageLimit);
+    const currentPage = page < 1 || !page || pageCount === 0 ? 1 : Math.min(page, pageCount);
+    console.log('CCPAGE', pageCount);
+    console.log('AGE', Math.min(page, pageCount));
+
+    const offset = pageLimit * (currentPage - 1);
+
+    const paginate = (array, pageSize, pageNumber) => {
+      const number = pageNumber - 1;
+      return array.slice(number * pageSize, (number + 1) * pageSize);
+    }
+
+    const results = paginate(arr, pageLimit, currentPage);
+
+    const paginatedResults = {
+      paginationMeta: {
+        currentPage,
+        currentPageSize: pageLimit,
+        totalPages: pageCount,
+        totalRecords: arr.length
+      },
+      rows: results
+    }
+
+    return paginatedResults;
   }
 
   /**
@@ -87,10 +125,29 @@ class ProductController {
    * @memberof ProductController
    */
   static async searchProduct(req, res, next) {
-    const { query_string, all_words } = req.query;  // eslint-disable-line
-    // all_words should either be on or off
-    // implement code to search product
-    return res.status(200).json({ message: 'this works' });
+    try {
+      const { query: { query_string, all_words, page, limit: rawLimit = 10 } } = req;  // eslint-disable-line
+      console.log('PAGE', page);
+
+      const products = await Product.findAll();
+      const results = Object.values(products);
+      const search = query_string.toLowerCase();
+      const limit = parseInt(rawLimit);
+      const all = all_words === 'true';
+
+      const words = all
+                      ? results.filter(({ name, description }) => ( name.toLowerCase().includes(search) || description.toLowerCase().includes(search)) )
+                      : results.filter(({ name }) => ( name.toLowerCase().includes(search)));
+      
+      const searched = query_string ? words : Object.values(results);
+
+      const paginatedSearchResults = ProductController.paginateResults(searched, limit, page);
+
+      return res.status(200).json(paginatedSearchResults);
+
+    } catch(error){
+      next(error);
+    }
   }
 
   /**

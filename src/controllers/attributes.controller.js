@@ -22,8 +22,7 @@ class AttributeController {
   static async getAllAttributes(req, res, next) {
     try {
       const result = await Attribute.findAndCountAll();
-      return res.status(200).json(result);
-      
+      return res.status(200).json(result);      
     } catch(error) {
       next(error);
     }
@@ -36,8 +35,29 @@ class AttributeController {
    * @param {*} next
    */
   static async getSingleAttribute(req, res, next) {
-    // Write code to get a single attribute using the attribute id provided in the request param
-    return res.status(200).json({ message: 'this works' });
+    try {
+      const { params: { attribute_id } } = req;
+
+      if(!Number(attribute_id)){
+        res.status(400).json({
+          success: false,
+          message: `${attribute_id} is not a valid ID`
+        });
+      }
+      const attributeResult = await Attribute.findByPk(attribute_id);
+
+      if(!attributeResult){
+        res.status(404).json({
+          error: {
+            status: 404,
+            message: `Attribute with id ${attribute_id} does not exist`,  // eslint-disable-line
+          }
+        });
+      }
+      return res.status(200).json(attributeResult);
+    } catch (error){
+      next(error);
+    }   
   }
 
   /**
